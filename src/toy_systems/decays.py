@@ -5,8 +5,7 @@ from typing import Union
 import numpy as np
 from sympy import Symbol
 
-from .basis import Basis
-from .states import BasisState
+from .states import Basis, BasisState
 
 
 @dataclass
@@ -33,18 +32,28 @@ class Decay:
         # Set a flag that tracks if any of the couplings are symbolic
         symbolic = False
 
-        # Loop over basis states
-        for i, state1 in enumerate(basis[:]):
-            for j, state2 in enumerate(basis[:]):
-                if state1 == self.excited and state2 == self.ground:
-                    C[i, j] = self.gamma ** (1 / 2)
+        if self.ground_state:
+            # Loop over basis states
+            for i, state1 in enumerate(basis[:]):
+                for j, state2 in enumerate(basis[:]):
+                    if state1 == self.excited and state2 == self.ground:
+                        C[i, j] = self.gamma ** (1 / 2)
 
-                    print(type(C[i, j]))
+                        print(type(C[i, j]))
+
+                        # Check for symbolic matrix elements
+                        if not symbolic:
+                            symbolic = isinstance(C[i, j], Symbol)
+
+        else:
+            # Loop over basis states
+            for i, state1 in enumerate(basis[:]):
+                if state1 == self.excited:
+                    C[i, i] = -1j * self.gamma / 2
 
                     # Check for symbolic matrix elements
                     if not symbolic:
-                        symbolic = isinstance(C[i, j], Symbol)
-
+                        symbolic = isinstance(C[i, i], Symbol)
         # If no symbolic couplings, convert matrix datatype to float
         if not symbolic:
             C = C.astype(float)

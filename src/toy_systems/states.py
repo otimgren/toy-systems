@@ -4,31 +4,68 @@ TlF eigenstates.
 """
 from abc import ABC, abstractmethod
 from dataclasses import dataclass
+from typing import List
 
 import numpy as np
+import qutip
 
 
 @dataclass
 class QuantumNumbers:
     """
-    Abstract parnet class for storing the quantum numbers of a state.
+    Abstract parent class for storing the quantum numbers of a state.
     """
 
-    def state_string(self):
+    def __post_init__(self) -> None:
+        self.__repr__ = self.state_string
+
+    def state_string(self) -> str:
         """
         Generates a string of the quantum numbers as a ket.
         """
+        # Initialize the ket string
+        ket = "|"
+
+        # Loop over quantum numbers (i.e. fields of data class)
+        for field in self.__dataclass_fields__:
+            attr = getattr(self, field)
+            if attr is not None:
+                ket += f"{field} = {attr}, "
+
+        # Get rid of space and comma for last quantum number
+        ket = ket[:-2]
+
+        # Finish off the ket
+        ket += ">"
+
+        return ket
+
+
+@dataclass
+class ToyQuantumNumbers(QuantumNumbers):
+    """
+    No angular momentum. Only quantum number is a state label.
+    """
+
+    label: str
+
+    def state_string(self) -> str:
+        return f"|{self.label}>"
 
 
 @dataclass
 class JQuantumNumbers(QuantumNumbers):
+    """
+    Only one angular momentum quantum number, J. Optionally a state label.
+    """
+
     J: float
     mJ: float
     name: str = None
 
 
 @dataclass
-class BasisState(ABC):
+class BasisState:
     """
     Class for  basis states.
     """
@@ -84,6 +121,39 @@ class BasisState(ABC):
         Right scalar product for basis state and constant.
         """
         return self * a
+
+    def __repr__(self) -> str:
+        return self.qn.__repr__()
+
+
+class Basis:
+    """
+    Class used to represent a quantum basis
+    """
+
+    def __init__(self, basis_states: List[BasisState], name=None) -> None:
+        self.basis_states = basis_states
+        self.dim = len(basis_states)
+        self.name = name
+
+    def __repr__(self) -> str:
+        return f"Basis: name = {self.name}"
+
+    def __iter__(self):
+        self.index = 0
+        return self
+
+    def __next__(self):
+        x = self.basis_states
+        self.index += 1
+        return x
+
+    def __getitem__(self, i):
+        return self.basis_states[i]
+
+    def print_basis(self):
+        for i, basis_state in enumerate(self.basis_states):
+            print(f"|{i}> = {basis_state.__repr__()}")
 
 
 class State:
@@ -222,12 +292,22 @@ class State:
     #########################
     def normalize(self):
         """
-        Normalizes the state to have norm = 1
+        Returns state normalized to have norm = 1.
         """
         data = []
         N = np.sqrt(self @ self)
         for amp, basis_state in self.data:
             data.append([amp / N, basis_state])
+
+        return State(data)
+
+    def dag(self):
+        """
+        Returns hermitian conjugate of state.
+        """
+        data = []
+        for amp, basis_state in self.data:
+            data.append([np.conjugate(amp), basis_state])
 
         return State(data)
 
@@ -241,32 +321,39 @@ class State:
                     amp = np.abs(amp) ** 2
                 if np.real(complex(amp)) > 0:
                     print("+", end="")
-                string = basis_state.print_quantum_numbers(printing=False)
+                string = basis_state.__repr__()
                 string = "{:.4f}".format(complex(amp)) + " x " + string
                 print(string)
 
-    def state_vector(self, QN):
+    def state_vector(self, basis: Basis) -> np.ndarray:
         """
         Returns the state as a vector in the provided basis
         """
-        state_vector = [1 * state @ self for state in QN]
+        state_vector = [1 * state @ self for state in basis[:]]
         return np.array(state_vector, dtype=complex)
 
-    def density_matrix(self, QN):
+    def density_matrix(self, basis: Basis) -> np.ndarray:
         """
         Generates a density matrix based on the state given and the provided basis.
         """
         # Get state vector
-        state_vec = self.state_vector(QN)
+        state_vec = self.state_vector(basis)
 
         # Generate density matrix from state vector
         density_matrix = np.tensordot(state_vec.conj(), state_vec, axes=0)
 
         return density_matrix
 
+    def qobj(self, basis: Basis) -> qutip.Qobj:
+        """
+        Returns a QuTiP Qobj representation of the state as a ket.
+        """
+        state_vec = self.state_vector(basis)
+        return qutip.Qobj(inpt=state_vec, type="ket")
+
     def remove_small_components(self, tol=1e-3):
         """
-        Removes components that are smaller than tol from state
+        Returns self with components that are smaller than tol removed.
         """
         purged_data = []
         for amp, basis_state in self.data:
@@ -277,7 +364,7 @@ class State:
 
     def order_by_amp(self):
         """
-        Ordes state components in descending order of |amp|^2
+        Returns state with components ordered in descending order of |amp|^2.
         """
         data = self.data
         amp_array = np.zeros(len(data))
@@ -297,7 +384,7 @@ class State:
 
     def print_largest_components(self, n=1):
         """
-        Prints largest n component states
+        Prints largest n component states and returns the printed string.
         """
         # Order the state by amplitude
         state = self.order_by_amp()
