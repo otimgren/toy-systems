@@ -1,6 +1,7 @@
 """
 Contains class used to represent Hamiltonians.
 """
+import copy
 from typing import List
 
 import numpy as np
@@ -38,6 +39,12 @@ class Hamiltonian:
             basis_str = f"{self.basis.__repr__()}"
 
             return return_string + couplings_str + basis_str
+
+    def copy(self):
+        """
+        Return a copy of the Hamiltonian
+        """
+        return copy.deepcopy(self)
 
     def generate_matrix(self) -> None:
         """

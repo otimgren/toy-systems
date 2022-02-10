@@ -2,11 +2,10 @@ from symtable import Symbol
 
 from sympy import symbols
 
-from toy_systems.basis import Basis
 from toy_systems.couplings import ToyCoupling, ToyEnergy
 from toy_systems.decays import Decay
 from toy_systems.hamiltonian import Hamiltonian
-from toy_systems.states import BasisState, JQuantumNumbers, QuantumNumbers, State
+from toy_systems.states import Basis, BasisState, JQuantumNumbers
 
 
 def main():
