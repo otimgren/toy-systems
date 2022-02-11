@@ -1,2 +1,33 @@
 # toy-systems
-Code for atomic and molecular physics toy systems
+Code for making quantum physics toy models.
+
+# Getting started
+- I suggest first creating a clean virtual environment, e.g. using conda by running `conda create --name [environment name] python==3.9` (many of the examples use QuTiP which isn't compatible with python 3.10 as of 2/10/2022).
+- Download/fork the repository and then run `python setup.py install` in the root folder of the repository to install the data analysis package and its dependencies.
+- You should then be able to run the example Jupyter notebooks in `./examples/`. This is the best place to start learning how to use the package.
+
+# Structure of the package
+The package is divided into several modules that contain the building blocks that can in principle be used to model any quantum system, although `toy_models` is geared towards manually building small toy systems, where the user has easy control over the parameters.
+
+## States
+
+### `BasisState`
+The `states` module provides a representation for the basis states of a quantum system in the form of the `states.BasisState`-object, which can essentially be thought of as basis kets. 
+
+### `State`
+Composite states made out of multiple `BasisState`s are called `State`s (can again think of these as kets). `State`s have various utility functions which are currently only documented in the source code
+
+### `Basis`
+We typically want to convert quantum states and operators to the matrix formalism for computations. To do this so we need to provide a basis using `Basis`, which contains a tuple of `BasisStates` whose ordering determines the indexing of the matrix representations.
+
+### `QuantumNumbers`
+Each `BasisState` requires a `QuantumNumbers`-object when constructed to ...specify its quantum numbers. There are various subclasses of `QuantumNumbers` to represent the various possible quantum numbers that might be used to specify a quantum state. 
+
+## Couplings
+`Coupling`s between states are used to generate the matrix elements of the Hamiltonian. Each subclass of `Coupling` has a method `calculate_ME` which takes as arguments two `BasisStates` and returns the matrix element between them. Energies are also treated as couplings in this package.
+
+## Hamiltonian
+The couplings and the states allow us to generate a `Hamiltonian` which can be used to calculate the eigenstates and to time-evolve the system. The `Hamiltonian` has a method to convert it to a `qutip.QobjEvo` and so the time-evolution is typically performed using QuTiP; `toy_systems` does not implement any time-evolution methods.
+
+## Decays
+Some quantum states are unstable, and can decay. This is represented by the `Decay` object which can be used to specify the decay channels of a quantum system. `Decay`s also come with methods to convert them to `qutip.Qobj`s for easy time-evolution.
