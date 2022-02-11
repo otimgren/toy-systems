@@ -11,20 +11,15 @@ import numpy as np
 import qutip
 from sympy import Expr, Symbol
 
+from .core import QuantumObject
 from .states import Basis, BasisState
 
 
 @dataclass
-class Coupling(ABC):
+class Coupling(QuantumObject):
     """
     Abstract parent class for couplings
     """
-
-    state_a: BasisState
-    state_b: BasisState
-    mag: Union[complex, Symbol, Expr]
-    time_dep: Union[str, Callable] = None
-    time_args: dict = field(default_factory=dict)
 
     def __post_init__(
         self,
@@ -32,9 +27,7 @@ class Coupling(ABC):
         matrix_sym: np.ndarray = None,
         qobj: Union[qutip.Qobj, qutip.QobjEvo] = None,
     ) -> None:
-        self.matrix = matrix
-        self.qobj = qobj
-        self.matrix_sym = matrix_sym
+        super().__init__(matrix, matrix_sym, qobj)
 
         if isinstance(self.mag, (Symbol, Expr)):
             # Check that self.mag contains a maximum of 1 symbol
@@ -141,18 +134,26 @@ class ToyEnergy(Coupling):
     Class used to generate diagonal matrix elements for Hamiltonian
     """
 
+    state: BasisState
+    mag: Union[complex, Symbol, Expr]
+    time_dep: Union[str, Callable] = None
+    time_args: dict = field(default_factory=dict)
+
     def __post_init__(
-        self, _matrix: np.ndarray = None, _qobj: Union[qutip.Qobj, qutip.QobjEvo] = None
+        self,
+        matrix: np.ndarray = None,
+        matrix_sym: np.ndarray = None,
+        qobj: Union[qutip.Qobj, qutip.QobjEvo] = None,
     ) -> None:
-        super().__post_init__(_matrix, _qobj)
-        assert (
-            self.state_a == self.state_b
-        ), "States provided to ToyEnergy must be the same!"
+        super().__post_init__(matrix, matrix_sym, qobj)
 
     def calculate_ME(
         self, state1: BasisState, state2: BasisState
     ) -> Union[float, Symbol, Expr]:
-        if (self.state_a == state1) & (self.state_a == state2):
+        """
+        Returns self.mag (i.e. energy) if two provided states both match self.state.
+        """
+        if (self.state == state1) & (self.state == state2):
             return self.mag
         else:
             return 0
@@ -164,6 +165,12 @@ class ToyCoupling(Coupling):
     Generic toy coupling between state_a and state_b of strength mag:
     Omega = <state_b|H|state_a>.
     """
+
+    state_a: BasisState
+    state_b: BasisState
+    mag: Union[complex, Symbol, Expr]
+    time_dep: Union[str, Callable] = None
+    time_args: dict = field(default_factory=dict)
 
     def calculate_ME(
         self, state1: BasisState, state2: BasisState

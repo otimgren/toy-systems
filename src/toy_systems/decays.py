@@ -1,3 +1,4 @@
+from abc import abstractmethod
 from dataclasses import dataclass, field
 from typing import Callable, List, Tuple, Union
 
@@ -29,7 +30,53 @@ class Decay:
     ):
         self.matrix = matrix
         self.matrix_sym = matrix_sym
-        self._qobj = qobj
+        self.qobj = qobj
+
+    @abstractmethod
+    def calculate_ME(
+        self, state1: BasisState, state2: BasisState
+    ) -> Union[float, Symbol, Expr]:
+        """
+        Calculates the matrix element between states 1 and 2
+        """
+
+    def generate_qobj(self, basis: Basis = None) -> None:
+        """
+        Generates a qutip.Qobj representation of the collapse operator.
+        """
+        if self.matrix is None:
+            self.generate_decay_matrix(basis)
+
+        qobj = qutip.Qobj(inpt=self.matrix, type="oper")
+
+        if self.time_dep:
+            self.qobj = [qobj, self.time_dep]
+        else:
+            self.qobj = qobj
+
+
+@dataclass
+class ToyDecay:
+    """
+    Class that represents a decay channel from excited state to ground state at
+    rate gamma.
+    """
+
+    excited: BasisState
+    ground: Union[BasisState, None]
+    gamma: Union[float, Symbol]
+    time_dep: Union[str, Callable] = None
+    time_args: dict = field(default_factory=dict)
+
+    def __post_init__(
+        self,
+        matrix: np.ndarray = None,
+        matrix_sym: np.ndarray = None,
+        qobj: qutip.Qobj = None,
+    ):
+        self.matrix = matrix
+        self.matrix_sym = matrix_sym
+        self.qobj = qobj
 
     def generate_matrix(self, basis: Basis) -> None:
         """
@@ -118,12 +165,12 @@ class Decay:
         Generates a qutip.Qobj representation of the collapse operator.
         """
         if self.matrix is None:
-            self.generate_decay_matrix(basis)
+            self.generate_matrix(basis)
 
         qobj = qutip.Qobj(inpt=self.matrix, type="oper")
 
         if self.time_dep:
-            self.qobj = (qobj, self.time_dep)
+            self.qobj = [qobj, self.time_dep]
         else:
             self.qobj = qobj
 

@@ -30,9 +30,9 @@ class Hamiltonian:
         self.qobj = qobj
 
         # Generate the matrix and Qobj
-        if self.basis:
-            self.generate_matrix()
-            self.generate_qobj()
+        if self.basis is not None:
+            self.generate_matrix(self.basis)
+            self.generate_qobj(self.basis)
 
     def __repr__(self) -> str:
         if self.matrix is not None:
@@ -51,7 +51,7 @@ class Hamiltonian:
         """
         return copy.deepcopy(self)
 
-    def generate_matrix(self) -> None:
+    def generate_matrix(self, basis: Basis) -> None:
         """
         Generates a matrix reperesentation of the hamiltonian.
 
@@ -59,14 +59,17 @@ class Hamiltonian:
         primarily for checking that the couplings look correct.
         """
         # Define a container for the matrix
-        H = np.zeros((self.basis.dim, self.basis.dim), dtype="object")
+        H = np.zeros((basis.dim, basis.dim), dtype="object")
 
         # Set a flag that tracks if any of the couplings are symbolic
         symbolic = False
 
         # Loop over couplings and calculate their matrix representations
         for coupling in self.couplings:
-            M = coupling.M(self.basis)
+            if coupling.matrix is None:
+                coupling.generate_matrix(basis)
+
+            M = coupling.matrix
             H += M
 
             if M.dtype == "object":
@@ -83,7 +86,7 @@ class Hamiltonian:
 
         self.matrix = H
 
-    def generate_qobj(self) -> None:
+    def generate_qobj(self, basis=None) -> None:
         """
         Generates a qutip.QobjEvo of the Hamiltonian that can be used for time-evolution.
         """
@@ -91,7 +94,8 @@ class Hamiltonian:
         args = {}
 
         for coupling in self.couplings:
-            coupling.generate_qobj(self.basis)
+            if coupling.qobj is None:
+                coupling.generate_qobj(basis)
             qobjs.append(coupling.qobj)
             args.update(coupling.time_args)
 

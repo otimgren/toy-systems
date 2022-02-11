@@ -45,5 +45,5 @@ class QuantumSystem:
         # Combine the args of self.H.qobj and self.C_list
         self.H.qobj.args.update(self.C_list.args)
 
-        return self.H, self.C_list
+        return self.H.qobj, self.C_list.qobjs
 
