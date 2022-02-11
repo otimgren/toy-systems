@@ -61,7 +61,7 @@ class JQuantumNumbers(QuantumNumbers):
 
     J: float
     mJ: float
-    name: str = None
+    label: str = None
 
 
 @dataclass
@@ -162,10 +162,7 @@ class State:
     """
 
     def __init__(
-        self,
-        data=[],
-        remove_zero_amp_cpts=True,
-        name=None,
+        self, data=[], remove_zero_amp_cpts=True, name=None,
     ):
         # check for duplicates
         for i in range(len(data)):
