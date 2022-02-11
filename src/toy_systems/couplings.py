@@ -28,13 +28,13 @@ class Coupling(ABC):
 
     def __post_init__(
         self,
-        _matrix: np.ndarray = None,
-        _M_complex: np.ndarray = None,
-        _qobj: Union[qutip.Qobj, qutip.QobjEvo] = None,
+        matrix: np.ndarray = None,
+        matrix_sym: np.ndarray = None,
+        qobj: Union[qutip.Qobj, qutip.QobjEvo] = None,
     ) -> None:
-        self._matrix = _matrix
-        self._qobj = _qobj
-        self._M_complex = _M_complex
+        self.matrix = matrix
+        self.qobj = qobj
+        self.matrix_sym = matrix_sym
 
         if isinstance(self.mag, (Symbol, Expr)):
             # Check that self.mag contains a maximum of 1 symbol
@@ -71,84 +71,68 @@ class Coupling(ABC):
         # If no symbolic couplings, convert matrix datatype to float
         if not symbolic:
             M = M.astype(complex)
+            self.matrix = M
 
-        self._matrix = M
+        # Otherwise store the symbolic matrix, but also make a non-symbolic version
+        else:
+            self.matrix_sym = M
+            self._generate_matrix_complex()
 
-    def M(self, basis: Basis = None) -> np.ndarray:
+    def _generate_matrix_complex(self) -> np.ndarray:
         """
-        Gets the matrix representation of the coupling.
+        Generates the matrix representation as an ndarray with dtype = complex.
+        Adjusts self.time_dep and time_attrs to include self.mag as a constant
+        multiplier.
         """
-        if self._matrix is None:
-            self.generate_matrix(basis)
+        # Check if the matrix already exists
+        if self.matrix is not None:
+            return
 
-        return self._matrix
+        # Otherwise convert symbolic matrix to complex
+        elif self.matrix_sym is not None:
+            # Update time_dep and time_args
+            expr = self.mag
+            symbol = list(expr.free_symbols)[0]
+            symbol_name = symbol.__repr__()
+            self.time_args[symbol_name] = 1
+
+            if isinstance(self.time_dep, str):
+                self.time_dep = f"{symbol_name}*({self.time_dep})"
+
+            elif isinstance(self.time_dep, Callable):
+                old_time_dep = self.time_dep
+                self.time_dep = lambda x, attrs: attrs[symbol_name] * old_time_dep(x)
+
+            else:
+                self.time_dep = symbol_name
+
+            # Convert symbolic version to complex version
+            M = self.matrix_sym.copy()
+            rows, columns = M.nonzero()
+            for i in rows:
+                for j in columns:
+                    if isinstance(M[i, j], (Symbol, Expr)):
+                        M[i, j] = M[i, j].subs(symbol, 1)
+
+            M = M.astype(complex)
+
+            self.matrix = M
 
     def generate_qobj(self, basis: Basis = None) -> None:
         """
         Generates a qutip.Qobj representation of the coupling stored in self.qobj.
         """
-        M = self.M_complex()
+        if self.matrix is None:
+            self.generate_matrix(basis)
+
+        M = self.matrix
 
         qobj = qutip.Qobj(inpt=M, type="oper")
 
         if self.time_dep:
-            self._qobj = (qobj, self.time_dep)
+            self.qobj = (qobj, self.time_dep)
         else:
-            self._qobj = qobj
-
-    def M_complex(self, basis=None) -> np.ndarray:
-        """
-        Returns the matrix representation as an ndarray with dtype = complex.
-        Adjusts self.time_dep and time_attrs to include self.mag as a constant
-        multiplier.
-        """
-        # If already have a dtype==complex M, return that
-        if self.M().dtype == complex:
-            return self.M()
-
-        # If complex matrix has already been generated, return that
-        if self._M_complex is not None:
-            return self._M_complex
-
-        # Otherwise convert symbolic matrix to complex
-        # Update time_dep and time_args
-        expr = self.mag
-        symbol = list(expr.free_symbols)[0]
-        symbol_name = symbol.__repr__()
-        self.time_args[symbol_name] = 1
-
-        if isinstance(self.time_dep, str):
-            self.time_dep = f"{symbol_name}*({self.time_dep})"
-
-        elif isinstance(self.time_dep, Callable):
-            old_time_dep = self.time_dep
-            self.time_dep = lambda x, attrs: attrs[symbol_name] * old_time_dep(x)
-
-        else:
-            self.time_dep = symbol_name
-
-        # Get complex version of M
-        M = self.M(basis).copy()
-        rows, columns = M.nonzero()
-        for i in rows:
-            for j in columns:
-                if isinstance(M[i, j], (Symbol, Expr)):
-                    M[i, j] = M[i, j].subs(symbol, 1)
-
-        M = M.astype(complex)
-
-        self._M_complex = M
-
-        return M
-
-    def qobj(self, basis: Basis = None) -> Union[qutip.Qobj, qutip.QobjEvo]:
-        """
-        Gets the qutip representation of the object.
-        """
-        if self._qobj is None:
-            self.generate_qobj(basis)
-
-        return self._qobj
+            self.qobj = qobj
 
 
 @dataclass

@@ -1,6 +1,5 @@
-import enum
 from dataclasses import dataclass, field
-from typing import Callable, Union
+from typing import Callable, List, Tuple, Union
 
 import numpy as np
 import qutip
@@ -19,6 +18,8 @@ class Decay:
     excited: BasisState
     ground: Union[BasisState, None]
     gamma: Union[float, Symbol]
+    time_dep: Union[str, Callable] = None
+    time_args: dict = field(default_factory=dict)
 
     def __post_init__(
         self,
@@ -30,7 +31,7 @@ class Decay:
         self.matrix_sym = matrix_sym
         self._qobj = qobj
 
-    def generate_decay_matrix(self, basis: Basis) -> None:
+    def generate_matrix(self, basis: Basis) -> None:
         """
         Generates a matrix that represents this decay in the given basis.
         """
@@ -72,21 +73,33 @@ class Decay:
         # Otherwise, store the symbolic matrix but also make a non-symbolic version
         else:
             self.matrix_sym = C
-            self._generate_C_complex()
+            self._generate_matrix_complex()
 
-    def _generate_C_complex(self) -> None:
+    def _generate_matrix_complex(self) -> None:
         """
         Returns a version of the decay matrix with dtype = complex 
         """
         # Check if the matrix already exists
         if self.matrix is not None:
-            pass
+            return
 
         # Otherwise convert symbolic matrix to complex
         elif self.matrix_sym is not None:
             # Update time_dep and time_args
             expr = self.gamma
             symbol = list(expr.free_symbols)[0]
+            symbol_name = symbol.__repr__()
+            self.time_args[symbol_name] = 1
+
+            if isinstance(self.time_dep, str):
+                self.time_dep = f"{symbol_name}*({self.time_dep})"
+
+            elif isinstance(self.time_dep, Callable):
+                old_time_dep = self.time_dep
+                self.time_dep = lambda x, attrs: attrs[symbol_name] * old_time_dep(x)
+
+            else:
+                self.time_dep = symbol_name
 
             # Convert symbolic version to complex version
             C = self.matrix_sym.copy()
@@ -100,19 +113,46 @@ class Decay:
 
             self.matrix = C
 
-    def generate_qobj(self, gamma: float, basis: Basis = None) -> None:
+    def generate_qobj(self, basis: Basis = None) -> None:
         """
         Generates a qutip.Qobj representation of the collapse operator.
         """
         if self.matrix is None:
             self.generate_decay_matrix(basis)
 
-        self._qobj = qutip.Qobj(gamma * self.matrix, type="oper")
+        qobj = qutip.Qobj(inpt=self.matrix, type="oper")
 
-    def qobj(self, gamma: float) -> qutip.Qobj:
+        if self.time_dep:
+            self.qobj = (qobj, self.time_dep)
+        else:
+            self.qobj = qobj
+
+
+@dataclass
+class DecayList:
+    """
+    Class for conveniently storing Decays and passing their qobjs to QuTiP for time-evolution.
+    """
+
+    decays: List[Decay]
+    basis: Basis = None
+
+    def __post_init__(self, qobjs: List = None, args: dict = None):
+        self.qobjs = qobjs
+        self.args = args
+        if self.basis is not None:
+            self.generate_qobjs(self.basis)
+
+    def generate_qobjs(self, basis: Basis) -> None:
         """
-        Returns the qobj attribute with specified value of gamma.
+        Generates a list of tuples of Qobjs and their time dependences, and a dictionary of
+        arguments for the time dependence strings or functions
         """
-        self.generate_qobj(gamma)
-        return self._qobj
+        self.qobjs = []
+        self.args = {}
+
+        for decay in self.decays:
+            decay.generate_qobj(basis)
+            self.qobjs.append(decay.qobj)
+            self.args.update(decay.time_args)
 

@@ -19,19 +19,20 @@ class Hamiltonian:
 
     def __init__(
         self,
-        basis: Basis,
         couplings: List[Coupling],
+        basis: Basis = None,
         matrix: np.ndarray = None,
         qobj: qutip.QobjEvo = None,
     ) -> None:
         self.basis = basis
         self.couplings = couplings
         self.matrix = matrix
-        self.qobj = None
+        self.qobj = qobj
 
         # Generate the matrix and Qobj
-        self.generate_matrix()
-        self.generate_qobj()
+        if self.basis:
+            self.generate_matrix()
+            self.generate_qobj()
 
     def __repr__(self) -> str:
         if self.matrix is not None:
@@ -90,7 +91,8 @@ class Hamiltonian:
         args = {}
 
         for coupling in self.couplings:
-            qobjs.append(coupling.qobj(self.basis))
+            coupling.generate_qobj(self.basis)
+            qobjs.append(coupling.qobj)
             args.update(coupling.time_args)
 
         self.qobj = qutip.QobjEvo(Q_object=qobjs, args=args)
