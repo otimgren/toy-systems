@@ -29,6 +29,10 @@ class Hamiltonian:
         self.matrix = matrix
         self.qobj = None
 
+        # Generate the matrix and Qobj
+        self.generate_matrix()
+        self.generate_qobj()
+
     def __repr__(self) -> str:
         if self.matrix is not None:
             return f"H =\n{Matrix(self.matrix).__repr__()[7:-1]}\n\nin basis {self.basis.__repr__()}"

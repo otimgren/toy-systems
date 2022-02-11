@@ -46,7 +46,7 @@ class Decay:
             for i, state1 in enumerate(basis[:]):
                 for j, state2 in enumerate(basis[:]):
                     if state1 == self.excited and state2 == self.ground:
-                        C[j, 1] = self.gamma ** (1 / 2)
+                        C[j, i] = self.gamma ** (1 / 2)
 
                         # Check for symbolic matrix elements
                         if not symbolic:

@@ -36,6 +36,11 @@ class Coupling(ABC):
         self._qobj = _qobj
         self._M_complex = _M_complex
 
+        if isinstance(self.mag, (Symbol, Expr)):
+            # Check that self.mag contains a maximum of 1 symbol
+            error_msg = "ERROR: each coupling magnitude can contain only one Symbol"
+            assert len(self.mag.free_symbols) <= 1, error_msg
+
     @abstractmethod
     def calculate_ME(
         self, state1: BasisState, state2: BasisState
