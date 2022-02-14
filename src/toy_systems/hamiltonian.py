@@ -66,8 +66,7 @@ class Hamiltonian:
 
         # Loop over couplings and calculate their matrix representations
         for coupling in self.couplings:
-            if coupling.matrix is None:
-                coupling.generate_matrix(basis)
+            coupling.generate_matrix(basis)
 
             M = coupling.matrix
             H += M

@@ -2,12 +2,12 @@
 Couplings used to generate hamiltonians
 """
 
-from abc import ABC, abstractmethod
-from ast import Call
+from abc import abstractmethod
 from dataclasses import dataclass, field
-from tkinter.messagebox import RETRY
 from typing import Callable, List, Union
 
+import matplotlib.pyplot as plt
+import numexpr as ne
 import numpy as np
 import qutip
 from sympy import Expr, Symbol
@@ -128,6 +128,34 @@ class Coupling(QuantumObject):
         else:
             self.qobj = qobj
 
+    def eval(self, times: np.array, time_args: dict, mag: float = 1) -> np.ndarray:
+        """
+        Evaluates the strength of the coupling at the given times t.
+        """
+        if isinstance(self.time_dep, str):
+            values = ne.evaluate(self.time_dep, time_args | {"t": times})
+            # If there is no time dependence, need to convert to array
+            if not values.shape:
+                values = values * np.ones(times.shape)
+
+            return mag * values
+
+        elif isinstance(self.time_dep, Callable):
+            return mag * self.time_dep(times, time_args)
+
+    def plot_time_dep(
+        self, times: np.ndarray, time_args: dict, mag=1, ax: plt.Axes = None, **kwargs
+    ):
+        """
+        Plots the time dependence of the coupling.
+        """
+        if ax is None:
+            _, ax = plt.subplots(figsize=(16, 9))
+
+        ax.plot(times, self.eval(times, time_args, mag), **kwargs)
+        ax.set_xlabel("Time", fontsize=16)
+        ax.set_ylabel("Magnitude of coupling", fontsize=16)
+
 
 @dataclass
 class ToyEnergy(Coupling):
@@ -203,7 +231,9 @@ class FirstRankCouplingJ(Coupling):
     mag: Union[complex, Symbol, Expr]
     p_car: np.ndarray = None  # Polarization vector in cartesian basis (x,y,z,)
     p_sph: dict = None  # Polarization vector in spherical basis (-1,0,1)
-    rm_func: Callable = None  # Function for calculating reduced matrix element given J and J'
+    rm_func: Callable = (
+        None  # Function for calculating reduced matrix element given J and J'
+    )
     other_conds: List[
         Callable
     ] = None  # Functions for checking that matrix element is non-zero
@@ -285,4 +315,3 @@ class FirstRankCouplingJ(Coupling):
                 return False
 
         return True
-
