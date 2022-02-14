@@ -96,6 +96,6 @@ class Hamiltonian:
             if coupling.qobj is None:
                 coupling.generate_qobj(basis)
             qobjs.append(coupling.qobj)
-            args.update(coupling.time_args)
+            args.update(coupling.time_args) 
 
         self.qobj = qutip.QobjEvo(Q_object=qobjs, args=args)

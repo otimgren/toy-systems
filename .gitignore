@@ -1,7 +1,8 @@
 # Jupyter notebooks in src
 src/*.ipynb
-src/qobjevo_*.py
-examples/qobjevo_*.py
+src/*qobjevo_*.py*
+examples/*qobjevo_*.py*
+examples/Figures/*
 
 # Byte-compiled / optimized / DLL files
 __pycache__/

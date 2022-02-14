@@ -91,14 +91,14 @@ class Coupling(QuantumObject):
             self.time_args[symbol_name] = 1
 
             if isinstance(self.time_dep, str):
-                self.time_dep = f"{symbol_name}*({self.time_dep})"
+                self.time_dep = f"{expr.__repr__()}*({self.time_dep})"
 
             elif isinstance(self.time_dep, Callable):
                 old_time_dep = self.time_dep
                 self.time_dep = lambda x, attrs: attrs[symbol_name] * old_time_dep(x)
 
             else:
-                self.time_dep = symbol_name
+                self.time_dep = expr.__repr__()
 
             # Convert symbolic version to complex version
             M = self.matrix_sym.copy()
@@ -106,7 +106,7 @@ class Coupling(QuantumObject):
             for i in rows:
                 for j in columns:
                     if isinstance(M[i, j], (Symbol, Expr)):
-                        M[i, j] = M[i, j].subs(symbol, 1)
+                        M[i, j] = M[i, j].subs(expr, 1)
 
             M = M.astype(complex)
 
@@ -145,16 +145,18 @@ class Coupling(QuantumObject):
 
     def plot_time_dep(
         self, times: np.ndarray, time_args: dict, mag=1, ax: plt.Axes = None, **kwargs
-    ):
+    ) -> List[plt.Line2D]:
         """
         Plots the time dependence of the coupling.
         """
         if ax is None:
             _, ax = plt.subplots(figsize=(16, 9))
 
-        ax.plot(times, self.eval(times, time_args, mag), **kwargs)
+        ln = ax.plot(times, self.eval(times, time_args, mag), **kwargs)
         ax.set_xlabel("Time", fontsize=16)
         ax.set_ylabel("Magnitude of coupling", fontsize=16)
+
+        return ln
 
 
 @dataclass
