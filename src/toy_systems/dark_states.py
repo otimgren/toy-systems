@@ -44,8 +44,8 @@ def get_dark_states(
     ]
 
     # Generate orthogonal basis of dark states by using Gram-Schmidt process
-    dark_ortho = []
-    for v in dark_non:
+    dark_ortho = [dark_non[0]]
+    for v in dark_non[1:]:
         for u in dark_ortho:
             v -= v @ u
 
