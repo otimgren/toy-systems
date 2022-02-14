@@ -39,7 +39,7 @@ def get_dark_states(
 
     # Generate a non-orthogonal basis of dark states
     dark_non = [
-        (mags[0] * ground_states[0] - mags[i] * gs).normalize()
+        (mags[i + 1] * ground_states[0] - mags[0] * gs).normalize()
         for i, gs in enumerate(ground_states[1:])
     ]
 
