@@ -107,7 +107,7 @@ class Coupling(QuantumObject):
                 for j in columns:
                     if isinstance(M[i, j], (Symbol, Expr)):
                         M[i, j] = M[i, j].subs(expr, 1)
-
+                        M[i, j] = M[i, j].subs(np.conj(expr), 1)
             M = M.astype(complex)
 
             self.matrix = M

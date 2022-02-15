@@ -171,7 +171,7 @@ class ToyDecay:
         qobj = qutip.Qobj(inpt=self.matrix, type="oper")
 
         if self.time_dep:
-            self.qobj = [(qobj, self.time_dep)]
+            self.qobj = [[qobj, self.time_dep]]
         else:
             self.qobj = [qobj]
 
@@ -296,7 +296,7 @@ class CouplingDecay(Decay):
             qobj = qutip.Qobj(inpt=matrix, type="oper")
 
             if self.time_dep:
-                self.qobj.append((qobj, self.time_dep))
+                self.qobj.append([qobj, self.time_dep])
 
             else:
                 self.qobj.append(qobj)
