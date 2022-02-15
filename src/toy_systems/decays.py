@@ -6,6 +6,7 @@ import numpy as np
 import qutip
 from sympy import Expr, Symbol
 
+from .couplings import Coupling, FirstRankCouplingJ
 from .states import Basis, BasisState
 
 
@@ -72,7 +73,7 @@ class ToyDecay:
         self,
         matrix: np.ndarray = None,
         matrix_sym: np.ndarray = None,
-        qobj: qutip.Qobj = None,
+        qobj: List[qutip.Qobj] = None,
     ):
         self.matrix = matrix
         self.matrix_sym = matrix_sym
@@ -124,7 +125,7 @@ class ToyDecay:
 
     def _generate_matrix_complex(self) -> None:
         """
-        Returns a version of the decay matrix with dtype = complex 
+        Returns a version of the decay matrix with dtype = complex
         """
         # Check if the matrix already exists
         if self.matrix is not None:
@@ -139,14 +140,14 @@ class ToyDecay:
             self.time_args[symbol_name] = 1
 
             if isinstance(self.time_dep, str):
-                self.time_dep = f"{symbol_name}*({self.time_dep})"
+                self.time_dep = f"{expr.__repr__()}*({self.time_dep})"
 
             elif isinstance(self.time_dep, Callable):
                 old_time_dep = self.time_dep
                 self.time_dep = lambda x, attrs: attrs[symbol_name] * old_time_dep(x)
 
             else:
-                self.time_dep = symbol_name
+                self.time_dep = expr.__repr__()
 
             # Convert symbolic version to complex version
             C = self.matrix_sym.copy()
@@ -154,7 +155,7 @@ class ToyDecay:
             for i in rows:
                 for j in columns:
                     if isinstance(C[i, j], (Symbol, Expr)):
-                        C[i, j] = C[i, j].subs(symbol, 1)
+                        C[i, j] = C[i, j].subs(expr, 1)
 
             C = C.astype(complex)
 
@@ -170,9 +171,135 @@ class ToyDecay:
         qobj = qutip.Qobj(inpt=self.matrix, type="oper")
 
         if self.time_dep:
-            self.qobj = [qobj, self.time_dep]
+            self.qobj = [(qobj, self.time_dep)]
         else:
-            self.qobj = qobj
+            self.qobj = [qobj]
+
+
+class CouplingDecay(Decay):
+    """
+    Decay from an excited state via provided couplings (e.g. electric dipole).
+    """
+
+    excited: BasisState
+    gamma: Union[float, Symbol]
+    couplings: List[Coupling]
+    ground: List[BasisState] = None
+    time_dep: Union[str, Callable] = None
+    time_args: dict = field(default_factory=dict)
+
+    def __post_init__(self) -> None:
+        self.MEs = []
+        self.brs = []
+        self.matrices = []
+        self.matrices_sym = []
+        self.qobj = []
+
+    def calculate_MEs(self, basis: Basis = None, tol=0) -> None:
+        """
+        Calculates the matrix elements between all states in basis if provided,
+        or between self.ground and self.excited
+        """
+        # Case 1: No basis provided but self.ground is provided
+        if (basis is None) and (self.ground is not None):
+            for gs in self.ground:
+                for coupling in self.couplings:
+                    self.MEs.append(coupling.calculate_ME(self.excited, gs))
+
+        # Case 2: Basis is provided
+        elif basis is not None:
+            self.ground = []
+            for gs in basis[:]:
+                for coupling in self.couplings:
+                    ME = coupling.calculate_ME(self.excited, gs)
+                    if np.abs(ME) > tol:
+                        self.ground.append(gs)
+                        self.MEs.append(ME)
+
+        # Case 3: Nothing provided, raise error
+        else:
+            raise ValueError("Need to provide a basis or ground states")
+
+    def generate_matrices(self, basis: Basis) -> None:
+        # Calculate matrix elements between excited state and each
+        # basis state
+        self.calculate_MEs(basis)
+
+        # Calculate index of excited state in the basis
+        i_e = basis.find_state_idx(self.excited)
+
+        # Calculate sum of all the MEs for the couplings
+        MEsqr_sum = np.sum(np.abs(self.MEs) ** 2)
+
+        # Loop over the ground states of the decay and calculate decay matrices
+        for gs, ME in zip(self.ground, self.MEs):
+            i_g = basis.find_state_idx(gs)
+
+            # Calculate branching ratio and add to list
+            br = (np.abs(ME) ** 2) / MEsqr_sum
+            self.brs.append(br)
+
+            # Generate the decay matrix
+            c = np.zeros((basis.dim, basis.dim), dtype=object)
+            c[i_g, i_e] = br * self.gamma
+            self.matrix_sym.append(c)
+
+        # Convert decay matrices to float
+        self._generate_float_matrices()
+
+    def _generate_float_matrices(self) -> None:
+        """
+        Converts the symbolic matrices to float dtype
+        """
+        # Check if the matrices already exists
+        if self.matrices is not None:
+            return
+
+        # Otherwise convert symbolic matrix to complex
+        elif self.matrix_sym is not None:
+            # Update time_dep and time_args
+            expr = self.mag
+            symbol = list(expr.free_symbols)[0]
+            symbol_name = symbol.__repr__()
+            self.time_args[symbol_name] = 1
+
+            if isinstance(self.time_dep, str):
+                self.time_dep = f"{expr.__repr__()}*({self.time_dep})"
+
+            elif isinstance(self.time_dep, Callable):
+                old_time_dep = self.time_dep
+                self.time_dep = lambda x, attrs: attrs[symbol_name] * old_time_dep(x)
+
+            else:
+                self.time_dep = expr.__repr__()
+
+            for matrix_sym in self.matrices_sym:
+                # Convert symbolic versions to complex version
+                M = matrix_sym.copy()
+                rows, columns = M.nonzero()
+                for i in rows:
+                    for j in columns:
+                        if isinstance(M[i, j], (Symbol, Expr)):
+                            M[i, j] = M[i, j].subs(expr, 1)
+
+                self.matrices.append(M.astype(complex))
+
+    def generate_qobj(self, basis: Basis = None) -> None:
+        """
+        Generates b qobj-list in the given basis if provided, otherwise
+        use stored matrices.
+        """
+        if self.matrices is None:
+            self.generate_matrices()
+
+        for matrix in self.matrices:
+            qobj = qutip.Qobj(inpt=matrix, type="oper")
+
+            if self.time_dep:
+                self.qobj.append((qobj, self.time_dep))
+
+            else:
+                self.qobj.append(qobj)
 
 
 @dataclass
@@ -200,6 +327,5 @@ class DecayList:
 
         for decay in self.decays:
             decay.generate_qobj(basis)
-            self.qobjs.append(decay.qobj)
+            self.qobjs += decay.qobj
             self.args.update(decay.time_args)
-

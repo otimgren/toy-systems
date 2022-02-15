@@ -72,7 +72,7 @@ class Coupling(QuantumObject):
             self.matrix_sym = M
             self._generate_matrix_complex()
 
-    def _generate_matrix_complex(self) -> np.ndarray:
+    def _generate_matrix_complex(self) -> None:
         """
         Generates the matrix representation as an ndarray with dtype = complex.
         Adjusts self.time_dep and time_attrs to include self.mag as a constant
@@ -165,7 +165,7 @@ class ToyEnergy(Coupling):
     Class used to generate diagonal matrix elements for Hamiltonian
     """
 
-    state: BasisState
+    states: List[BasisState]
     mag: Union[complex, Symbol, Expr]
     time_dep: Union[str, Callable] = None
     time_args: dict = field(default_factory=dict)
@@ -184,7 +184,7 @@ class ToyEnergy(Coupling):
         """
         Returns self.mag (i.e. energy) if two provided states both match self.state.
         """
-        if (self.state == state1) & (self.state == state2):
+        if (state1 in self.states) & (state1 == state2):
             return self.mag
         else:
             return 0
@@ -262,7 +262,9 @@ class FirstRankCouplingJ(Coupling):
             + np.abs(self.p_sph[0]) ** 2
             + np.abs(self.p_sph[+1]) ** 2
         )
-        assert norm == 1, "Error: polarization vector not normalized"
+        assert (
+            np.abs(norm - 1) < 1e-6
+        ), f"Error: polarization vector not normalized: norm ={norm}"
 
     def calculate_ME(
         self, state1: BasisState, state2: BasisState
@@ -304,7 +306,7 @@ class FirstRankCouplingJ(Coupling):
         if self.rm_func:
             ME *= self.rm_func(state1, state2)
 
-        return 1j * self.mag * ME
+        return self.mag * ME
 
     def check_other_conds(self, state1: BasisState, state2: BasisState) -> bool:
         """

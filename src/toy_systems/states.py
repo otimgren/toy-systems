@@ -151,9 +151,15 @@ class Basis:
     def __getitem__(self, i):
         return self.basis_states[i]
 
-    def print_basis(self):
+    def print(self):
         for i, basis_state in enumerate(self.basis_states):
             print(f"|{i}> = {basis_state.__repr__()}")
+
+    def find_state_idx(self, state: BasisState) -> int:
+        """
+        Given a BasisState, finds its index in the basis
+        """
+        return self.basis_states.index(state)
 
 
 class State:
@@ -162,7 +168,10 @@ class State:
     """
 
     def __init__(
-        self, data=[], remove_zero_amp_cpts=True, name=None,
+        self,
+        data=[],
+        remove_zero_amp_cpts=True,
+        name=None,
     ):
         # check for duplicates
         for i in range(len(data)):
@@ -378,23 +387,6 @@ class State:
         reordered_data = [reordered_data[i] for i in index]
 
         return State(reordered_data)
-
-    def print_largest_components(self, n=1):
-        """
-        Prints largest n component states and returns the printed string.
-        """
-        # Order the state by amplitude
-        state = self.order_by_amp()
-
-        # Initialize an empty string
-        string = ""
-
-        for i in range(0, n):
-            basis_state = state.data[i][1]
-            amp = state.data[i][0]
-            basis_state.print_quantum_numbers()
-
-        return string
 
     def find_largest_component(self):
         """
