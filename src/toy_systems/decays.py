@@ -133,7 +133,7 @@ class ToyDecay:
             self.time_args[symbol_name] = 1
 
             if isinstance(self.time_dep, str):
-                self.time_dep = f"{symbol_name}*({self.time_dep})"
+                self.time_dep = f"{symbol_name}**0.5*({self.time_dep})"
 
             elif isinstance(self.time_dep, Callable):
                 old_time_dep = self.time_dep
@@ -150,7 +150,7 @@ class ToyDecay:
                     if isinstance(C[i, j], (Symbol, Expr)):
                         # Important to maintain relative phase
                         C[i, j] = C[i, j].subs(np.conj(symbol), symbol)
-                        C[i, j] = C[i, j] / symbol
+                        C[i, j] = C[i, j] / symbol**0.5
 
             C = C.astype(complex)
 
@@ -238,7 +238,7 @@ class CouplingDecay(Decay):
 
             # Generate the decay matrix
             c = np.zeros((basis.dim, basis.dim), dtype=object)
-            c[i_g, i_e] = br * self.gamma
+            c[i_g, i_e] = (br * self.gamma) ** 0.5
             if self.matrix_sym is None:
                 self.matrix_sym = []
             self.matrix_sym.append(c)
@@ -266,7 +266,7 @@ class CouplingDecay(Decay):
             self.time_args[symbol_name] = 1
 
             if isinstance(self.time_dep, str):
-                self.time_dep = f"{symbol_name}*({self.time_dep})"
+                self.time_dep = f"sqrt({symbol_name})*({self.time_dep})"
 
             elif isinstance(self.time_dep, Callable):
                 old_time_dep = self.time_dep
@@ -284,7 +284,7 @@ class CouplingDecay(Decay):
                         if isinstance(M[i, j], (Symbol, Expr)):
                             # Important to maintain relative phase
                             M[i, j] = M[i, j].subs(np.conj(symbol), symbol)
-                            M[i, j] = M[i, j] / symbol
+                            M[i, j] = M[i, j] / symbol**0.5
 
                 self.matrix.append(M.astype(complex))
 

@@ -60,7 +60,10 @@ class Jz_op(Operator):
         """
         Calculates <state1|Jz|state2>
         """
-        return state1.qn.mJ * (state1 @ state2)
+        try:
+            return state1.qn.mJ * (state1 @ state2)
+        except AttributeError:
+            return 0
 
 
 class Jplus_op(Operator):
@@ -72,14 +75,21 @@ class Jplus_op(Operator):
         """
         Calculates <state1|J+|state2>.
         """
-        J2 = state2.qn.J
-        m2 = state2.qn.mJ
-        ME = np.sqrt(J2 * (J2 + 1) - m2 * (m2 + 1))
+        try:
+            J2 = state2.qn.J
+            m2 = state2.qn.mJ
+            ME = np.sqrt(J2 * (J2 + 1) - m2 * (m2 + 1))
+
+        except AttributeError:
+            # IF state2 doesn't have the correct quantum numbers return 0
+            return 0
 
         try:
             new_state = BasisState(
                 JQuantumNumbers(
-                    label=state2.qn.label, J=state2.qn.J, mJ=state2.qn.mJ + 1,
+                    label=state2.qn.label,
+                    J=state2.qn.J,
+                    mJ=state2.qn.mJ + 1,
                 )
             )
 
@@ -99,14 +109,20 @@ class Jminus_op(Operator):
         """
         Calculates <state1|J+|state2>.
         """
-        J2 = state2.qn.J
-        m2 = state2.qn.mJ
-        ME = np.sqrt(J2 * (J2 + 1) - m2 * (m2 - 1))
+        try:
+            J2 = state2.qn.J
+            m2 = state2.qn.mJ
+            ME = np.sqrt(J2 * (J2 + 1) - m2 * (m2 - 1))
+        except AttributeError:
+            # IF state2 doesn't have the correct quantum numbers return 0
+            return 0
 
         try:
             new_state = BasisState(
                 JQuantumNumbers(
-                    label=state2.qn.label, J=state2.qn.J, mJ=state2.qn.mJ - 1,
+                    label=state2.qn.label,
+                    J=state2.qn.J,
+                    mJ=state2.qn.mJ - 1,
                 )
             )
         except ValueError:
@@ -182,4 +198,3 @@ class JRotation:
         M = self.matrix
 
         self.qobj = qutip.Qobj(inpt=M, type="oper")
-

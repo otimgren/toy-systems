@@ -88,10 +88,11 @@ class BasisState:
         # Check that both states are in the same basis and have the same
         # quantum numbers
         if type(self.qn) != type(other.qn):
-            raise ValueError(
-                "Error: Comparing states in different bases. "
-                "Note: ordering of quantum numbers matters."
-            )
+            return 0
+            # raise ValueError(
+            #     "Error: Comparing states in different bases. "
+            #     "Note: ordering of quantum numbers matters."
+            # )
 
         else:
             return self.qn == other.qn
@@ -437,4 +438,3 @@ class State:
         new_vec = operator.matrix @ state_vec
 
         return basis.vector_to_state(new_vec)
-
