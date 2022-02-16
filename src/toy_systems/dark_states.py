@@ -3,6 +3,8 @@ Utility functions for dealing with dark states.
 """
 from typing import List, Tuple
 
+import numpy as np
+
 from .couplings import Coupling
 from .hamiltonian import Hamiltonian
 from .quantum_system import QuantumSystem
@@ -27,14 +29,21 @@ def get_dark_states(
     # Determine the couplings to the excited state for each ground state
     mags = []
     bright = State()
-    exc_vec = (1 * excited_state).state_vector(basis)
+    exc_vec = (1 * excited_state).get_state_vector(basis)
     for ground_state in ground_states:
         mags.append(
-            exc_vec.T.conj() @ H.matrix @ (1 * ground_state).state_vector(basis)
+            exc_vec.T.conj() @ H.matrix @ (1 * ground_state).get_state_vector(basis)
         )
         bright += mags[-1] * ground_state
 
-    # Normalize the bright staet
+    mags = np.array(mags)
+
+    # If all the magnitudes are zero, return the ground states
+    if np.allclose(np.zeros(mags.shape), mags):
+        print("Warning: no ground states coupled to excited state")
+        return ground_states
+
+    # Normalize the bright state
     bright = bright.normalize()
 
     # Generate a non-orthogonal basis of dark states

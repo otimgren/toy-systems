@@ -63,6 +63,13 @@ class JQuantumNumbers(QuantumNumbers):
     mJ: float
     label: str = None
 
+    def __post_init__(self) -> None:
+        """
+        Check that value of mJ is allowed
+        """
+        if not (-self.J <= self.mJ <= self.J):
+            raise ValueError("-J <= mJ <= J not satisfied")
+
 
 @dataclass
 class BasisState:
@@ -81,7 +88,10 @@ class BasisState:
         # Check that both states are in the same basis and have the same
         # quantum numbers
         if type(self.qn) != type(other.qn):
-            raise ValueError("Error: Comparing states in different bases")
+            raise ValueError(
+                "Error: Comparing states in different bases. "
+                "Note: ordering of quantum numbers matters."
+            )
 
         else:
             return self.qn == other.qn
@@ -161,6 +171,16 @@ class Basis:
         """
         return self.basis_states.index(state)
 
+    def vector_to_state(self, state_vec: np.ndarray):
+        """
+        Given a state vector, outputs a state object
+        """
+        data = []
+        for i, amp in enumerate(state_vec):
+            data.append((amp, self.basis_states[i]))
+
+        return State(data)
+
 
 class State:
     """
@@ -168,10 +188,7 @@ class State:
     """
 
     def __init__(
-        self,
-        data=[],
-        remove_zero_amp_cpts=True,
-        name=None,
+        self, data=[], remove_zero_amp_cpts=True, name=None, basis=None, state_vec=None
     ):
         # check for duplicates
         for i in range(len(data)):
@@ -188,6 +205,9 @@ class State:
         self.index = len(self.data)
         # Give the state a name if desired
         self.name = name
+
+        self.state_vector = state_vec
+        self.basis = basis
 
     def __add__(self, other):
         """
@@ -285,7 +305,7 @@ class State:
                 continue
             string += f"{amp:.2f} x {state}"
             idx += 1
-            if (idx > 4) or (idx == len(ordered.data)):
+            if (idx > 10) or (idx == len(ordered.data)):
                 break
             string += "\n"
         if idx == 0:
@@ -331,19 +351,25 @@ class State:
                 string = "{:.4f}".format(complex(amp)) + " x " + string
                 print(string)
 
-    def state_vector(self, basis: Basis) -> np.ndarray:
+    def get_state_vector(self, basis: Basis = None) -> np.ndarray:
         """
         Returns the state as a vector in the provided basis
         """
-        state_vector = [1 * state @ self for state in basis[:]]
-        return np.array(state_vector, dtype=complex)
+        if self.state_vector is None:
+            state_vector = np.array([1 * state @ self for state in basis[:]])
+            self.state_vector = state_vector
+            self.basis = basis
+            return np.array(state_vector, dtype=complex)
+
+        else:
+            return self.state_vector
 
     def density_matrix(self, basis: Basis) -> np.ndarray:
         """
         Generates a density matrix based on the state given and the provided basis.
         """
         # Get state vector
-        state_vec = self.state_vector(basis)
+        state_vec = self.get_state_vector(basis)
 
         # Generate density matrix from state vector
         density_matrix = np.tensordot(state_vec.conj(), state_vec, axes=0)
@@ -354,7 +380,7 @@ class State:
         """
         Returns a QuTiP Qobj representation of the state as a ket.
         """
-        state_vec = self.state_vector(basis)
+        state_vec = self.get_state_vector(basis)
         return qutip.Qobj(inpt=state_vec, type="ket")
 
     def remove_small_components(self, tol=1e-3):
@@ -396,3 +422,19 @@ class State:
         state = self.order_by_amp()
 
         return state.data[0][1]
+
+    def apply_operator(self, basis: Basis, operator):
+        """
+        Applies an operator on the state
+        """
+        # Get state vector
+        state_vec = self.get_state_vector(basis)
+
+        # Get matrix for operator
+        if operator.matrix is None:
+            operator.generate_matrix(basis)
+
+        new_vec = operator.matrix @ state_vec
+
+        return basis.vector_to_state(new_vec)
+

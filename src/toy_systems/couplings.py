@@ -14,6 +14,7 @@ from sympy import Expr, Symbol
 
 from .core import QuantumObject
 from .states import Basis, BasisState
+from .utils import threej
 
 
 @dataclass
@@ -91,24 +92,29 @@ class Coupling(QuantumObject):
             self.time_args[symbol_name] = 1
 
             if isinstance(self.time_dep, str):
-                self.time_dep = f"{expr.__repr__()}*({self.time_dep})"
+                self.time_dep = f"{symbol_name}*({self.time_dep})"
 
             elif isinstance(self.time_dep, Callable):
                 old_time_dep = self.time_dep
                 self.time_dep = lambda x, attrs: attrs[symbol_name] * old_time_dep(x)
 
             else:
-                self.time_dep = expr.__repr__()
+                self.time_dep = symbol_name
 
             # Convert symbolic version to complex version
             M = self.matrix_sym.copy()
-            rows, columns = M.nonzero()
-            for i in rows:
-                for j in columns:
+            rows, columns = M.shape
+            for i in range(rows):
+                for j in range(columns):
                     if isinstance(M[i, j], (Symbol, Expr)):
-                        M[i, j] = M[i, j].subs(expr, 1)
-                        M[i, j] = M[i, j].subs(np.conj(expr), 1)
-            M = M.astype(complex)
+                        # Important to maintain relative phase
+                        M[i, j] = M[i, j].subs(np.conj(symbol), symbol)
+                        M[i, j] = M[i, j] / symbol
+            try:
+                M = M.astype(complex)
+            except Exception as e:
+                print(M)
+                raise e
 
             self.matrix = M
 
@@ -227,7 +233,8 @@ class FirstRankCouplingJ(Coupling):
     An example of this would be an electric or magnetic dipole coupling, where
     the matrix elements would be given by:
 
-    <s1, J, mJ|d_q^(k)|s2, J', mJ'> = <J', mJ'; k, q| J, mJ>/sqrt(2J+1)
+    1j<s1, J, mJ|d_q^(k)|s2, J', mJ'> = 1j*(-1)**(j-m)threej(J, k, J', -mJ, q, mJ')
+                                        * <J||d^(k)||J'>
     """
 
     mag: Union[complex, Symbol, Expr]
@@ -295,12 +302,8 @@ class FirstRankCouplingJ(Coupling):
             if amp == 0:
                 continue
 
-            # If projections don't add up, no contribution for this q
-            if mJ != mJp + q:
-                continue
-
             # At this point have to calculate the Clebsch-Gordan coefficient
-            ME += amp * qutip.clebsch(Jp, 1, J, mJp, q, mJ) / np.sqrt(2 * J + 1)
+            ME += amp * (-1) ** (J - mJ) * threej(J, 1, Jp, -mJ, q, mJp)
 
         # Finally multiply by reduced part of ME if provided
         if self.rm_func:

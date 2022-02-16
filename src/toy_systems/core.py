@@ -3,9 +3,8 @@ from typing import Union
 
 import numpy as np
 import qutip
-from sympy import Expr, Symbol
 
-from .states import Basis, BasisState
+from .states import Basis
 
 
 class QuantumObject(ABC):
