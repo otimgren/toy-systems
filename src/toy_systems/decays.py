@@ -150,7 +150,7 @@ class ToyDecay:
                     if isinstance(C[i, j], (Symbol, Expr)):
                         # Important to maintain relative phase
                         C[i, j] = C[i, j].subs(np.conj(symbol), symbol)
-                        C[i, j] = C[i, j] / symbol**0.5
+                        C[i, j] = C[i, j] / symbol ** 0.5
 
             C = C.astype(complex)
 
@@ -263,7 +263,7 @@ class CouplingDecay(Decay):
             expr = self.gamma
             symbol = list(expr.free_symbols)[0]
             symbol_name = symbol.__repr__()
-            self.time_args[symbol_name] = 1
+            self.time_args.update({symbol_name: 1})
 
             if isinstance(self.time_dep, str):
                 self.time_dep = f"sqrt({symbol_name})*({self.time_dep})"
@@ -284,7 +284,7 @@ class CouplingDecay(Decay):
                         if isinstance(M[i, j], (Symbol, Expr)):
                             # Important to maintain relative phase
                             M[i, j] = M[i, j].subs(np.conj(symbol), symbol)
-                            M[i, j] = M[i, j] / symbol**0.5
+                            M[i, j] = M[i, j] / symbol ** 0.5
 
                 self.matrix.append(M.astype(complex))
 

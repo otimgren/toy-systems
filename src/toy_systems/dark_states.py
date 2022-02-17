@@ -15,10 +15,12 @@ def get_dark_states(
     ground_states: List[BasisState],
     excited_state: BasisState,
     couplings: List[Coupling],
-) -> Tuple[State, List[State]]:
+    tol: float = 1e-6,
+) -> Tuple[List[State], List[State], List[State]]:
     """
     Determines the bright and dark states for a given list of ground and excited
-    states with given couplings
+    states with given couplings.
+
     """
     # Define a basis
     basis = Basis(ground_states + [excited_state])
@@ -36,15 +38,22 @@ def get_dark_states(
         )
         bright += mags[-1] * ground_state
 
-    mags = np.array(mags)
-
-    # If all the magnitudes are zero, return the ground states
-    if np.allclose(np.zeros(mags.shape), mags):
-        print("Warning: no ground states coupled to excited state")
-        return ground_states
-
     # Normalize the bright state
     bright = bright.normalize()
+
+    mags = np.array(mags)
+
+    # Add states that have no coupling to excited state to list of polarization
+    # dark_states
+    index_pol_dark = np.abs(mags) < tol
+    pol_dark_states = (1 * np.array(ground_states)[index_pol_dark]).tolist()
+
+    # Remove polarization dark states from list of ground states
+    ground_states = (np.array(ground_states)[~index_pol_dark]).tolist()
+
+    # If all ground states were polarization dark, return
+    if len(ground_states) == 0:
+        return [], [], pol_dark_states
 
     # Generate a non-orthogonal basis of dark states
     dark_non = [
@@ -60,4 +69,4 @@ def get_dark_states(
 
         dark_ortho.append(v)
 
-    return bright, dark_ortho
+    return [bright], dark_ortho, pol_dark_states

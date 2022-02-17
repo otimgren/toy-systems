@@ -14,7 +14,7 @@ from sympy import Expr, Symbol
 
 from .core import QuantumObject
 from .states import Basis, BasisState
-from .utils import threej
+from .utils import convert_qutip_to_numpy, threej
 
 
 @dataclass
@@ -56,12 +56,16 @@ class Coupling(QuantumObject):
 
         # Loop over basis states and calculate couplings between them
         for i, state1 in enumerate(basis[:]):
-            for j, state2 in enumerate(basis[:]):
+            for j in range(i, basis.dim):
+                state2 = basis[j]
                 M[i, j] += self.calculate_ME(state1, state2)
 
                 # Check for symbolic matrix elements
                 if not symbolic:
                     symbolic = isinstance(M[i, j], (Symbol, Expr))
+
+        # Add lower triangular part to matrix
+        M += np.triu(M).T.conj()
 
         # If no symbolic couplings, convert matrix datatype to float
         if not symbolic:
@@ -89,7 +93,7 @@ class Coupling(QuantumObject):
             expr = self.mag
             symbol = list(expr.free_symbols)[0]
             symbol_name = symbol.__repr__()
-            self.time_args[symbol_name] = 1
+            self.time_args.update({symbol_name: 1})
 
             if isinstance(self.time_dep, str):
                 self.time_dep = f"{symbol_name}*({self.time_dep})"
@@ -139,7 +143,8 @@ class Coupling(QuantumObject):
         Evaluates the strength of the coupling at the given times t.
         """
         if isinstance(self.time_dep, str):
-            values = ne.evaluate(self.time_dep, time_args | {"t": times})
+            new_string = convert_qutip_to_numpy(self.time_dep)
+            values = ne.evaluate(new_string, time_args | {"t": times})
             # If there is no time dependence, need to convert to array
             if not values.shape:
                 values = values * np.ones(times.shape)
@@ -233,7 +238,7 @@ class FirstRankCouplingJ(Coupling):
     An example of this would be an electric or magnetic dipole coupling, where
     the matrix elements would be given by:
 
-    1j<s1, J, mJ|d_q^(k)|s2, J', mJ'> = 1j*(-1)**(j-m)threej(J, k, J', -mJ, q, mJ')
+    <s1, J, mJ|d_q^(k)|s2, J', mJ'> = (-1)**(j-m)threej(J, k, J', -mJ, q, mJ')
                                         * <J||d^(k)||J'>
     """
 
@@ -303,7 +308,7 @@ class FirstRankCouplingJ(Coupling):
                 continue
 
             # At this point have to calculate the Clebsch-Gordan coefficient
-            ME += amp * (-1) ** (J - mJ) * threej(J, 1, Jp, -mJ, q, mJp)
+            ME += amp * (-1) ** float(J - mJ - q) * threej(J, 1, Jp, -mJ, -q, mJp)
 
         # Finally multiply by reduced part of ME if provided
         if self.rm_func:

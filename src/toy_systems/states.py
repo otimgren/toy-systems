@@ -295,6 +295,8 @@ class State:
         return self.data[i]
 
     def __repr__(self):
+        if len(self.data) == 0:
+            return "Empty state"
         ordered = self.order_by_amp()
         idx = 0
         string = ""
