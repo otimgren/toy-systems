@@ -10,5 +10,13 @@ setup(
     description=DESCRIPTION,
     packages=find_packages(where="src"),
     package_dir={"": "src"},
-    install_requires=["numpy>=1.21.5", "sympy>=1.9", "qutip>=4.6.2", "numexpr>2.6"],
+    install_requires=[
+        "numpy>=1.21.5",
+        "sympy>=1.9",
+        "qutip>=4.6.2",
+        "numexpr>2.6",
+        "matplotlib",
+        "regex",
+        "joblib",
+    ],
 )
