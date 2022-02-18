@@ -11,7 +11,7 @@ Code for making quantum physics toy models.
 - Make sure you have Python installed, e.g. as part of [Anaconda](https://www.anaconda.com/products/individual)
 - I suggest creating a clean virtual environment, e.g. using an Anaconda Prompt and conda by running `conda create --name [new environment name] python==3.9` (many of the examples use QuTiP which isn't compatible with python 3.10 as of 2/10/2022).
 - [Fork](https://docs.github.com/en/get-started/quickstart/fork-a-repo) the repository, [clone](https://docs.github.com/en/repositories/creating-and-managing-repositories/cloning-a-repository) the forked repository to you local machine, and then run `python setup.py install` in the root folder of the repository to install the  package and its dependencies.
-- Install [jupyter/jupyterLab](https://jupyter.org/install). If using conda you can run `conda install jupyterlab --channel conda-forge`.
+- Install [jupyter/jupyterLab](https://jupyter.org/install). If using conda you can run `conda install jupyter` or `conda install jupyterlab --channel conda-forge`.
 - You should then be able to run the example Jupyter notebooks in `./examples/`. This is the best place to start learning how to use the package. Recommended order:
   1. *Rabi oscillations in 2-level system.ipynb*. Shows the basics: how to set up a `QuantumSystem` using `Coupling`s, `Decay`s and a `Basis`, and then time-evolve the system.
   2. Any of *Rapid adiabatic passage in a 2-level system.ipynb*, *Landau-Zener transitions.ipynb*, *STIRAP in a 3-level system.ipynb*. In addition to the physics, these illustrate how to set up time-dependent couplings and energies and how to do parameter scans.
