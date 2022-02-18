@@ -18,10 +18,14 @@ Code for making quantum physics toy models.
   3. *Coherent dark states and polarization switching.ipynb* for a more complicated system with angular momentum.
 
 ## Need for speed?
-All of the example notebooks use [`QuTiP`](https://qutip.org/) to time-evolve the quantum system. A minimal installation of `QuTiP` is included by default in the installation of `toy_systems`. However, I strongly recommend additionally installing [`cython`](https://cython.readthedocs.io/en/latest/src/quickstart/install.html) which allows `QuTiP` to compile the time-evolution functions to C - this significantly speeds things up. Also make sure to have a C-compiler installed on your machine. Should be included on Mac and Linux but on Windows you'll need to install the [Visual Studio build tools for C](https://visualstudio.microsoft.com/vs/features/cplusplus/).
+All of the example notebooks use [`QuTiP`](https://qutip.org/) to time-evolve the quantum system. A minimal installation of `QuTiP` is included by default in the installation of `toy_systems`. However, I strongly recommend additionally installing [`cython`](https://cython.readthedocs.io/en/latest/src/quickstart/install.html)(`conda install cython`) which allows `QuTiP` to compile the time-evolution functions to C - this significantly speeds things up. Also make sure to have a C-compiler installed on your machine. Should be included on Mac and Linux but on Windows you'll need to install the [Visual Studio build tools for C](https://visualstudio.microsoft.com/vs/features/cplusplus/).
+
+
 
 # Contributing
 To contribute, submit a [pull request](https://docs.github.com/en/pull-requests/collaborating-with-pull-requests/proposing-changes-to-your-work-with-pull-requests/about-pull-requests) from your fork of the repository. Bug fixes, new examples, new features, new quantum number bases are all very much welcome.
+
+If you find something that is bugged or have a feature request, please post an [issue](https://github.com/otimgren/toy-systems/issues)
 ## Examples wanted
 If you use the package to simulate an interesting toy model, it would be nice to add it to the examples. Specific ideas:
 - Electromagnetically induced transparency
