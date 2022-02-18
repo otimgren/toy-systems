@@ -10,11 +10,14 @@ from .couplings import Coupling, FirstRankCouplingJ
 from .states import Basis, BasisState
 
 
+@dataclass
 class Decay:
     """
     Class that represents a decay channel from excited state to ground state at
     rate gamma.
     """
+
+    excited: BasisState
 
     def __post_init__(
         self,
@@ -50,13 +53,12 @@ class Decay:
 
 
 @dataclass
-class ToyDecay:
+class ToyDecay(Decay):
     """
     Class that represents a decay channel from excited state to ground state at
     rate gamma.
     """
 
-    excited: BasisState
     ground: Union[BasisState, None]
     gamma: Union[float, Symbol]
     time_dep: Union[str, Callable] = None
@@ -150,7 +152,7 @@ class ToyDecay:
                     if isinstance(C[i, j], (Symbol, Expr)):
                         # Important to maintain relative phase
                         C[i, j] = C[i, j].subs(np.conj(symbol), symbol)
-                        C[i, j] = C[i, j] / symbol ** 0.5
+                        C[i, j] = C[i, j] / symbol**0.5
 
             C = C.astype(complex)
 
@@ -177,7 +179,6 @@ class CouplingDecay(Decay):
     Decay from an excited state via provided couplings (e.g. electric dipole).
     """
 
-    excited: BasisState
     gamma: Union[float, Symbol]
     couplings: List[Coupling]
     ground: List[BasisState] = None
@@ -284,7 +285,7 @@ class CouplingDecay(Decay):
                         if isinstance(M[i, j], (Symbol, Expr)):
                             # Important to maintain relative phase
                             M[i, j] = M[i, j].subs(np.conj(symbol), symbol)
-                            M[i, j] = M[i, j] / symbol ** 0.5
+                            M[i, j] = M[i, j] / symbol**0.5
 
                 self.matrix.append(M.astype(complex))
 

@@ -1,14 +1,14 @@
 """
 Utility functions stored here
 """
-import re
 from operator import ne
 from typing import List
 
 import numpy as np
 import qutip
+import regex as re
 
-from .constants import qutip_to_numpy
+from .constants import qutip_to_numpy, visualization_subs
 from .states import Basis, State
 
 
@@ -52,3 +52,13 @@ def convert_qutip_to_numpy(string: str):
 
     return new_string
 
+
+def sub_visualization_labels(string: str):
+    """
+    Converts Greek letters to form \[letter] so plots will render them nicely
+    """
+    new_string = string
+    for key, value in visualization_subs.items():
+        new_string = re.sub(key, value, new_string)
+
+    return new_string

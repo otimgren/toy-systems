@@ -65,7 +65,7 @@ class Coupling(QuantumObject):
                     symbolic = isinstance(M[i, j], (Symbol, Expr))
 
         # Add lower triangular part to matrix
-        M += np.triu(M).T.conj()
+        M += np.triu(M, k=1).T.conj()
 
         # If no symbolic couplings, convert matrix datatype to float
         if not symbolic:

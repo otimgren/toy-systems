@@ -10,6 +10,26 @@ import numpy as np
 import qutip
 
 
+class QNIterator:
+    """
+    Class for iterating over quantum numbers. Returns tuples of quantum number
+    name and value
+    """
+
+    def __init__(self, qn):
+        self.qn = qn
+        self.index = 0
+
+    def __next__(self):
+        qn_list = list(self.qn.__dataclass_fields__)
+        if self.index < len(qn_list):
+            # Find fields of the data class
+            qn_name = qn_list[self.index]
+            self.index += 1
+            return qn_name, getattr(self.qn, qn_name)
+        raise StopIteration
+
+
 @dataclass
 class QuantumNumbers:
     """
@@ -18,6 +38,9 @@ class QuantumNumbers:
 
     def __post_init__(self) -> None:
         self.__repr__ = self.state_string
+
+    def __iter__(self):
+        return QNIterator(self)
 
     def state_string(self) -> str:
         """
@@ -181,6 +204,29 @@ class Basis:
             data.append((amp, self.basis_states[i]))
 
         return State(data)
+
+    def get_states_QN(self, QN: dict) -> List[BasisState]:
+        """
+        Returns all the states in the basis whose quantum numbers match QN
+        """
+        # Initialize container for results
+        states = []
+
+        # Get names of the quantum numbers based which selections are made
+        QN_names = list(QN.keys())
+
+        # Loop over basis
+        for bs in self[:]:
+            flag = True
+            for QN_name in QN_names:
+                if getattr(bs.qn, QN_name) not in QN[QN_name]:
+                    flag = False
+                    break
+
+            if flag:
+                states.append(bs)
+
+        return states
 
 
 class State:

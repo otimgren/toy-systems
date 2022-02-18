@@ -9,3 +9,11 @@ qutip_to_numpy = {
     "acosh": "arccosh",
     "atanh": "arctanh",
 }
+
+visualization_subs = {
+    "Omega": "\u03A9",
+    "Gamma": "\u0393",
+    "omega": "\u03C9",
+    "gamma": "\u03B3",
+    ">": "\u27E9",
+}
