@@ -5,7 +5,6 @@ from typing import Callable, List, Tuple, Union
 import matplotlib as mpl
 import matplotlib.pyplot as plt
 import numpy as np
-import sympy
 
 from .quantum_system import QuantumSystem
 from .states import BasisState
@@ -37,8 +36,14 @@ class Visualizer:
         # For convenience, store the states of the quantum system as an attribute
         self.states = quantum_system.basis.basis_states
 
+    def plot(
+        self, state_args: dict = {}, coupling_args: dict = {}, decay_args: dict = {}
+    ):
+        """
+        Plot the visualization of the quantum system.
+        """
         # Generate state visualizations
-        self.state_vis = self.generate_state_vis(vertical, horizontal)
+        self.state_vis = self.generate_state_vis(self.vertical, self.horizontal)
 
         # Generate coupling visualizations
         self.coupling_vis = self.generate_coupling_vis()
@@ -46,12 +51,6 @@ class Visualizer:
         # Generate decay visualizations
         self.decay_vis = self.generate_decay_vis()
 
-        self.plot()
-
-    def plot(self):
-        """
-        Plot the visualization of the quantum system.
-        """
         # Initialize figure and axes
         self.fig, self.ax = plt.subplots(figsize=(16, 9))
         self.fig.set_facecolor("xkcd:pale grey")
@@ -69,7 +68,7 @@ class Visualizer:
             vis.plot(self.ax)
 
     def generate_state_vis(
-        self, vertical: dict, horizontal: dict,
+        self, vertical: dict, horizontal: dict, length: float = 30, args: dict = {}
     ):
         """
         Generates state visualizations for the provided states.
@@ -204,22 +203,22 @@ class StateVis:
     """
 
     pos: Tuple[float]
+    length: float
     label: str = None
     label_offset: Tuple[float] = (0, -2)
-    length: float = 50
 
     def __post_init__(self):
         self.label = sub_visualization_labels(str(self.label))
         self.label = rf"$  {self.label}$"
 
-    def plot(self, ax: plt.Axes):
+    def plot(self, ax: plt.Axes, args: dict):
         """
         Plots the visualization onto given axes
         """
         ax.hlines(
             y=self.pos[1],
-            xmin=self.pos[0] - self.length / 2,
-            xmax=self.pos[0] + self.length / 2,
+            xmin=self.pos[0] - args["length"] / 2,
+            xmax=self.pos[0] + args["length"] / 2,
             colors="k",
             linewidth=2,
         )
