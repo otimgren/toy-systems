@@ -1,12 +1,11 @@
 from abc import ABC, abstractmethod
-from collections import defaultdict
-from cProfile import label
 from dataclasses import dataclass
 from typing import Callable, List, Tuple, Union
 
 import matplotlib as mpl
 import matplotlib.pyplot as plt
 import numpy as np
+import sympy
 
 from .quantum_system import QuantumSystem
 from .states import BasisState
@@ -31,10 +30,7 @@ class Visualizer:
     """
 
     def __init__(
-        self,
-        quantum_system: QuantumSystem,
-        vertical: dict,
-        horizontal: dict,
+        self, quantum_system: QuantumSystem, vertical: dict, horizontal: dict,
     ):
         self.qs = quantum_system
 
@@ -73,9 +69,7 @@ class Visualizer:
             vis.plot(self.ax)
 
     def generate_state_vis(
-        self,
-        vertical: dict,
-        horizontal: dict,
+        self, vertical: dict, horizontal: dict,
     ):
         """
         Generates state visualizations for the provided states.
@@ -198,7 +192,7 @@ class Visualizer:
                 y = (pos1[1] + pos2[1]) / 2
 
                 # Generate coupling visualization
-                decay_vis.append(DecayVis((x, y), pos1, pos2, M[i, j]))
+                decay_vis.append(DecayVis((x, y), pos1, pos2, (M[i, j] ** 2).base))
 
         return decay_vis
 
@@ -309,3 +303,5 @@ class EnergyVis:
     """
     Class for labeling energies
     """
+
+    # TO DO
