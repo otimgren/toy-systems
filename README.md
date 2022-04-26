@@ -3,7 +3,7 @@
 # toy-systems
 Code for making quantum physics toy models.
 
-![image](https://user-images.githubusercontent.com/34794187/154632686-02fa6343-01ec-4526-94a5-393ebc365d39.png)
+![image](https://user-images.githubusercontent.com/34794187/154774786-8fe9bf44-137e-4782-9324-c20ed3b6b714.png)
 ![image](https://user-images.githubusercontent.com/34794187/154633117-424604a1-2efd-479e-8eed-1760a86d15b8.png)
 
 
